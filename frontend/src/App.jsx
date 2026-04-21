@@ -2,53 +2,127 @@ import { useState } from "react";
 import "./App.css";
 
 function App() {
+  const [username, setUsername] = useState("");
+  const [password, setPassword] = useState("");
   const [text, setText] = useState("");
   const [sentimentResult, setSentimentResult] = useState("");
   const [items, setItems] = useState([]);
   const [imageLabels, setImageLabels] = useState([]);
+  const [selectedImage, setSelectedImage] = useState(null);
 
   const API_BASE_URL = "http://localhost:5001";
 
-  const handleSave = async () => {
-    const res = await fetch(`${API_BASE_URL}/items`, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({ text }),
-    });
+  const handleLogin = async () => {
+    try {
+      const res = await fetch(`${API_BASE_URL}/login`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ username, password }),
+      });
 
-    const data = await res.json();
-    console.log(data);
-    alert("Saved!");
+      const data = await res.json();
+
+      if (data.token) {
+        localStorage.setItem("token", data.token);
+        alert("Login successful!");
+      } else {
+        alert(data.message || "Login failed");
+      }
+    } catch (error) {
+      console.error("Login error:", error);
+      alert("Login failed");
+    }
+  };
+
+  const handleSave = async () => {
+    try {
+      const token = localStorage.getItem("token");
+
+      const res = await fetch(`${API_BASE_URL}/items`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({ text }),
+      });
+
+      const data = await res.json();
+
+      if (!res.ok) {
+        alert(data.message || data.error || "Save failed");
+        return;
+      }
+
+      console.log(data);
+      alert("Saved!");
+    } catch (error) {
+      console.error("Save error:", error);
+      alert("Save failed");
+    }
   };
 
   const handleGetItems = async () => {
-    const res = await fetch(`${API_BASE_URL}/items`);
-    const data = await res.json();
-    setItems(data);
+    try {
+      const res = await fetch(`${API_BASE_URL}/items`);
+      const data = await res.json();
+      setItems(data);
+    } catch (error) {
+      console.error("Get items error:", error);
+    }
   };
 
   const handleSentiment = async () => {
-    const res = await fetch(`${API_BASE_URL}/sentiment`, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({ text }),
-    });
+    try {
+      const res = await fetch(`${API_BASE_URL}/sentiment`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ text }),
+      });
 
-    const data = await res.json();
-    setSentimentResult(data.sentiment);
+      const data = await res.json();
+      setSentimentResult(data.sentiment || "No result");
+    } catch (error) {
+      console.error("Sentiment error:", error);
+      setSentimentResult("Error");
+    }
   };
 
-  const handleImage = async () => {
-    const res = await fetch(`${API_BASE_URL}/image`, {
-      method: "POST",
-    });
+  const handleImageChange = (e) => {
+    setSelectedImage(e.target.files[0]);
+  };
 
-    const data = await res.json();
-    setImageLabels(data.labels || []);
+  const handleImageUpload = async () => {
+    try {
+      if (!selectedImage) {
+        alert("Please choose an image first.");
+        return;
+      }
+
+      const formData = new FormData();
+      formData.append("image", selectedImage);
+
+      const res = await fetch(`${API_BASE_URL}/image-upload`, {
+        method: "POST",
+        body: formData,
+      });
+
+      const data = await res.json();
+
+      if (!res.ok) {
+        alert(data.error || "Image upload failed");
+        return;
+      }
+
+      setImageLabels(data.labels || []);
+    } catch (error) {
+      console.error("Image upload error:", error);
+      alert("Image upload failed");
+    }
   };
 
   return (
@@ -57,8 +131,32 @@ function App() {
         <h1>Ambush Vision CI/CD</h1>
         <p className="subtitle">
           A three-tier application using React, Flask, PostgreSQL, Docker,
-          Docker Compose, and GitHub Actions.
+          Docker Compose, GitHub Actions, AWS Comprehend, AWS Rekognition, and S3.
         </p>
+
+        <div className="section">
+          <h2>Login</h2>
+
+          <input
+            className="text-input"
+            type="text"
+            placeholder="Username"
+            value={username}
+            onChange={(e) => setUsername(e.target.value)}
+          />
+
+          <input
+            className="text-input"
+            type="password"
+            placeholder="Password"
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+          />
+
+          <div className="button-group">
+            <button onClick={handleLogin}>Login</button>
+          </div>
+        </div>
 
         <div className="section">
           <h2>Text Analysis & Storage</h2>
@@ -99,8 +197,10 @@ function App() {
         <div className="section">
           <h2>Image Analysis</h2>
 
+          <input type="file" accept="image/*" onChange={handleImageChange} />
+
           <div className="button-group">
-            <button onClick={handleImage}>Analyze Image</button>
+            <button onClick={handleImageUpload}>Upload & Analyze Image</button>
           </div>
 
           <div className="result-box">

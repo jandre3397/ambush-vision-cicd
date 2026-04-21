@@ -27,7 +27,7 @@ services:
       DB_PORT: 5432
       AWS_REGION: us-east-1
       SECRET_KEY: supersecretkey
-      S3_BUCKET: your-s3-bucket-name-here
+      S3_BUCKET: ambush-vision-images-jael-2026
       AWS_ACCESS_KEY_ID: ${AWS_ACCESS_KEY_ID}
       AWS_SECRET_ACCESS_KEY: ${AWS_SECRET_ACCESS_KEY}
     depends_on:
