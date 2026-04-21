@@ -18,7 +18,7 @@ services:
     build: ./backend
     container_name: ambushvision-backend
     ports:
-      - "5000:5000"
+      - "5001:5000"
     environment:
       DB_HOST: db
       DB_NAME: ambushvision
@@ -27,6 +27,14 @@ services:
       DB_PORT: 5432
     depends_on:
       - db
+
+  frontend:
+    build: ./frontend
+    container_name: ambushvision-frontend
+    ports:
+      - "3000:3000"
+    depends_on:
+      - backend
 
 volumes:
   postgres_data:
